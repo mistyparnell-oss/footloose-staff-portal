@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Footloose Staff Portal</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Footloose" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Apple Touch Icons (inline fallback) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a0a'/><text y='.9em' font-size='80' x='10'>🎵</text></svg>" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    :root {
+      --gold: #c9a84c;
+      --gold-light: #e8c96a;
+      --gold-dim: #8a6f30;
+      --black: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1e1e1e;
+      --surface3: #2a2a2a;
+      --border: #2e2e2e;
+      --text: #f0ede6;
+      --text-dim: #8a8a8a;
+      --red: #e05252;
+      --green: #4caf72;
+      --radius: 12px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      background: var(--black);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* ── APP SHELL ── */
+    .app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--black);
+      border-bottom: 1px solid var(--border);
+      padding: calc(var(--safe-top) + 14px) 20px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-icon {
+      width: 38px; height: 38px;
+      background: var(--gold);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 2px;
+      color: var(--text);
+      line-height: 1;
+    }
+    .header-sub {
+      font-size: 11px;
+      color: var(--gold);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── NAV ── */
+    .nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 12px;
+    }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav-item {
+      flex-shrink: 0;
+      padding: 14px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+      white-space: nowrap;
+      background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .nav-item.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+    .nav-item:hover { color: var(--text); }
+
+    /* ── PAGES ── */
+    .page { display: none; flex: 1; padding: 24px 16px calc(var(--safe-bottom) + 32px); max-width: 600px; margin: 0 auto; width: 100%; }
+    .page.active { display: block; }
+
+    /* ── SECTION HEADINGS ── */
+    .page-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    .page-sub {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+    }
+    .gold { color: var(--gold); }
+
+    /* ── FORM CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* ── FORM FIELDS ── */
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label.field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    label.field-label .req { color: var(--gold); margin-left: 2px; }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      padding: 12px 14px;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color .2s;
+      outline: none;
+    }
+    input[type="text"]:focus,
+    input[type="date"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--gold);
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-dim); opacity: 0.6; }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8a8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 38px;
+      cursor: pointer;
+    }
+    select option { background: var(--surface2); }
+
+    textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+
+    /* ── STAR RATING ── */
+    .star-group {
+      display: flex;
+      gap: 8px;
+    }
+    .star-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 36px;
+      line-height: 1;
+      color: var(--surface3);
+      transition: color .15s, transform .15s;
+      padding: 4px;
+    }
+    .star-btn.active { color: var(--gold); }
+    .star-btn:hover { transform: scale(1.15); }
+    .star-label {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    /* ── PHOTO UPLOAD ── */
+    .photo-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .photo-zone:hover, .photo-zone.drag-over {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.04);
+    }
+    .photo-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .photo-zone-icon { font-size: 36px; margin-bottom: 10px; }
+    .photo-zone-text { font-size: 14px; font-weight: 500; color: var(--text); }
+    .photo-zone-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+    .photo-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .photo-thumb {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      background: var(--surface2);
+    }
+    .photo-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .photo-thumb-remove {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      background: rgba(0,0,0,0.75);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .photo-count {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 10px;
+      text-align: center;
+    }
+    .photo-count .ok { color: var(--green); }
+    .photo-count .need { color: var(--gold); }
+
+    /* ── SUBMIT BUTTON ── */
+    .btn-submit {
+      width: 100%;
+      background: var(--gold);
+      color: var(--black);
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .2s, transform .1s;
+    }
+    .btn-submit:hover { background: var(--gold-light); }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled {
+      background: var(--surface3);
+      color: var(--text-dim);
+      cursor: not-allowed;
+    }
+
+    /* ── TOAST / STATUS ── */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 20px);
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 14px 20px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      z-index: 999;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+      pointer-events: none;
+      max-width: 90vw;
+      text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #1a3a24; border-color: var(--green); color: var(--green); }
+    .toast.error { background: #3a1a1a; border-color: var(--red); color: var(--red); }
+
+    /* ── HOME PAGE ── */
+    .home-hero {
+      text-align: center;
+      padding: 32px 0 28px;
+    }
+    .home-logo {
+      font-size: 64px;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .home-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 40px;
+      letter-spacing: 4px;
+      color: var(--text);
+      line-height: 1;
+    }
+    .home-title span { color: var(--gold); }
+    .home-tagline {
+      font-size: 13px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .home-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .home-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      text-align: center;
+    }
+    .home-card:hover {
+      border-color: var(--gold-dim);
+      background: var(--surface2);
+    }
+    .home-card-icon { font-size: 32px; margin-bottom: 8px; }
+    .home-card-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1.5px;
+      color: var(--text);
+    }
+    .home-card-desc { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+    /* ── INSTALL BANNER ── */
+    .install-banner {
+      background: linear-gradient(135deg, #1a1508, #241e08);
+      border: 1px solid var(--gold-dim);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .install-banner-icon { font-size: 28px; flex-shrink: 0; }
+    .install-banner-text { flex: 1; }
+    .install-banner-title { font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 2px; }
+    .install-banner-sub { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+    /* ── VALIDATION HIGHLIGHT ── */
+    .field-error input, .field-error select, .field-error textarea {
+      border-color: var(--red) !important;
+    }
+    .field-error-msg {
+      font-size: 12px;
+      color: var(--red);
+      margin-top: 5px;
+      display: none;
+    }
+    .field-error .field-error-msg { display: block; }
+
+    /* ── SENDING OVERLAY ── */
+    .sending-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,10,0.85);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sending-overlay.active { display: flex; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sending-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 2px;
+      color: var(--text);
+    }
+
+    /* ── SUCCESS STATE ── */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 48px 16px;
+    }
+    .success-state.active { display: block; }
+    .success-icon { font-size: 72px; margin-bottom: 20px; }
+    .success-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      letter-spacing: 2px;
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+    .success-msg { font-size: 15px; color: var(--text-dim); margin-bottom: 28px; }
+    .btn-again {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 28px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    .btn-again:hover { border-color: var(--gold); color: var(--gold); }
+
+    @media (max-width: 380px) {
+      .home-grid { grid-template-columns: 1fr; }
+      .photo-preview-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SENDING OVERLAY -->
+<div class="sending-overlay" id="sendingOverlay">
+  <div class="spinner"></div>
+  <div class="sending-text">Sending Report...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-icon">🎵</div>
+    <div>
+      <div class="header-title">Footloose</div>
+      <div class="header-sub">Staff Portal</div>
+    </div>
+  </header>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <button class="nav-item active" onclick="showPage('home')" id="nav-home">🏠 Home</button>
+    <button class="nav-item" onclick="showPage('event-report')" id="nav-event-report">📋 After Event Report</button>
+  </nav>
+
+  <!-- ══ HOME PAGE ══ -->
+  <div class="page active" id="page-home">
+    <div class="home-hero">
+      <span class="home-logo">🎶</span>
+      <div class="home-title">FOOT<span>LOOSE</span></div>
+      <div class="home-tagline">Entertainment · Staff Portal</div>
+    </div>
+
+    <div class="home-grid">
+      <div class="home-card" onclick="showPage('event-report')">
+        <div class="home-card-icon">📋</div>
+        <div class="home-card-title">After Event Report</div>
+        <div class="home-card-desc">Submit your post-event recap</div>
+      </div>
+      <div class="home-card" style="opacity:.45; cursor:default;">
+        <div class="home-card-icon">📅</div>
+        <div class="home-card-title">My Events</div>
+        <div class="home-card-desc">Coming soon</div>
+      </div>
+      <div class="home-card" style="opacity:.45; cursor:default;">
+        <div class="home-card-icon">💬</div>
+        <div class="home-card-title">Team Chat</div>
+        <div class="home-card-desc">Coming soon</div>
+      </div>
+      <div class="home-card" style="opacity:.45; cursor:default;">
+        <div class="home-card-icon">📂</div>
+        <div class="home-card-title">Resources</div>
+        <div class="home-card-desc">Coming soon</div>
+      </div>
+    </div>
+
+    <div class="install-banner">
+      <div class="install-banner-icon">📱</div>
+      <div class="install-banner-text">
+        <div class="install-banner-title">Add to Home Screen</div>
+        <div class="install-banner-sub">Tap <strong style="color:var(--text)">Share → Add to Home Screen</strong> (iOS) or the install prompt (Android) for quick access.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ AFTER EVENT REPORT PAGE ══ -->
+  <div class="page" id="page-event-report">
+
+    <!-- SUCCESS STATE -->
+    <div class="success-state" id="successState">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Report Submitted!</div>
+      <div class="success-msg">Your after-event report has been sent to Footloose HQ. Thanks for the great work!</div>
+      <button class="btn-again" onclick="resetForm()">Submit Another Report</button>
+    </div>
+
+    <!-- FORM STATE -->
+    <div id="formState">
+      <div class="page-title">After Event <span class="gold">Report</span></div>
+      <div class="page-sub">Complete this form after every event — photos required.</div>
+
+      <!-- SECTION: DJ INFO -->
+      <div class="card">
+        <div class="card-label">🎧 DJ Info</div>
+        <div class="field" id="f-dj">
+          <label class="field-label">DJ Name <span class="req">*</span></label>
+          <select id="djName">
+            <option value="">— Select your name —</option>
+            <option>Kris</option>
+            <option>Misty</option>
+            <option>DJ Smooth</option>
+            <option>DJ Roc</option>
+            <option>DJ Jayson</option>
+            <option>DJ Marcus</option>
+            <option>DJ Tony</option>
+            <option>DJ Vic</option>
+          </select>
+          <div class="field-error-msg">Please select your name.</div>
+        </div>
+      </div>
+
+      <!-- SECTION: EVENT INFO -->
+      <div class="card">
+        <div class="card-label">🎉 Event Details</div>
+        <div class="field" id="f-client">
+          <label class="field-label">Client Name <span class="req">*</span></label>
+          <input type="text" id="clientName" placeholder="e.g. Smith/Johnson Wedding" />
+          <div class="field-error-msg">Please enter the client name.</div>
+        </div>
+        <div class="field" id="f-date">
+          <label class="field-label">Event Date <span class="req">*</span></label>
+          <input type="date" id="eventDate" />
+          <div class="field-error-msg">Please enter the event date.</div>
+        </div>
+      </div>
+
+      <!-- SECTION: RATING -->
+      <div class="card">
+        <div class="card-label">⭐ Event Rating</div>
+        <div class="field" id="f-stars">
+          <label class="field-label">How did the event go? <span class="req">*</span></label>
+          <div class="star-group" id="starGroup">
+            <button class="star-btn" data-val="1" onclick="setStar(1)" type="button">★</button>
+            <button class="star-btn" data-val="2" onclick="setStar(2)" type="button">★</button>
+            <button class="star-btn" data-val="3" onclick="setStar(3)" type="button">★</button>
+            <button class="star-btn" data-val="4" onclick="setStar(4)" type="button">★</button>
+            <button class="star-btn" data-val="5" onclick="setStar(5)" type="button">★</button>
+          </div>
+          <div class="star-label" id="starLabel">Tap to rate</div>
+          <div class="field-error-msg">Please rate the event.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Anything we need to be aware of?</label>
+          <textarea id="eventNotes" placeholder="Incidents, special moments, feedback, anything unusual..."></textarea>
+        </div>
+      </div>
+
+      <!-- SECTION: VENDOR TEAM -->
+      <div class="card">
+        <div class="card-label">👥 Vendor Team</div>
+        <div class="field">
+          <label class="field-label">Photographer Name</label>
+          <input type="text" id="photographerName" placeholder="Leave blank if none" />
+        </div>
+        <div class="field">
+          <label class="field-label">Videographer Name</label>
+          <input type="text" id="videographerName" placeholder="Leave blank if none" />
+        </div>
+        <div class="field">
+          <label class="field-label">Wedding Coordinator Name</label>
+          <input type="text" id="coordinatorName" placeholder="Leave blank if none" />
+        </div>
+      </div>
+
+      <!-- SECTION: PHOTOS -->
+      <div class="card">
+        <div class="card-label">📸 Event Photos</div>
+        <div class="field" id="f-photos">
+          <label class="field-label">Upload Photos <span class="req">*</span> <span style="font-weight:400;color:var(--text-dim)">(min 3)</span></label>
+          <div class="photo-zone" id="photoZone">
+            <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotos(event)" />
+            <div class="photo-zone-icon">📷</div>
+            <div class="photo-zone-text">Tap to add photos</div>
+            <div class="photo-zone-hint">Min 3 · Party shot · With couple · Cool moment</div>
+          </div>
+          <div class="photo-preview-grid" id="photoGrid"></div>
+          <div class="photo-count" id="photoCount"></div>
+          <div class="field-error-msg">Please upload at least 3 photos.</div>
+        </div>
+      </div>
+
+      <button class="btn-submit" id="submitBtn" onclick="submitForm()">Submit Report →</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ── NAVIGATION ──
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── STAR RATING ──
+let starValue = 0;
+const starLabels = ['', 'Rough night 😬', 'Below average 😐', 'Pretty good 👍', 'Great event 🎉', 'Absolutely crushed it! 🔥'];
+
+function setStar(val) {
+  starValue = val;
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i < val);
+  });
+  document.getElementById('starLabel').textContent = starLabels[val];
+  clearFieldError('f-stars');
+}
+
+// ── PHOTO HANDLING ──
+let photoFiles = [];
+
+function handlePhotos(e) {
+  const newFiles = Array.from(e.target.files);
+  newFiles.forEach(f => {
+    if (!photoFiles.find(x => x.name === f.name && x.size === f.size)) {
+      photoFiles.push(f);
+    }
+  });
+  e.target.value = ''; // reset so same file can be added again if removed
+  renderPhotoGrid();
+  if (photoFiles.length >= 3) clearFieldError('f-photos');
+}
+
+function removePhoto(idx) {
+  photoFiles.splice(idx, 1);
+  renderPhotoGrid();
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  const countEl = document.getElementById('photoCount');
+  grid.innerHTML = '';
+  photoFiles.forEach((f, i) => {
+    const url = URL.createObjectURL(f);
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb';
+    thumb.innerHTML = `<img src="${url}" /><button class="photo-thumb-remove" onclick="removePhoto(${i})">✕</button>`;
+    grid.appendChild(thumb);
+  });
+  const n = photoFiles.length;
+  if (n === 0) {
+    countEl.innerHTML = '';
+  } else if (n < 3) {
+    countEl.innerHTML = `<span class="need">${n} of 3 minimum — add ${3 - n} more</span>`;
+  } else {
+    countEl.innerHTML = `<span class="ok">✓ ${n} photo${n > 1 ? 's' : ''} attached${n > 3 ? ' — great job going above the minimum!' : ''}</span>`;
+  }
+}
+
+// ── VALIDATION ──
+function setFieldError(id, hasError) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('field-error', hasError);
+}
+function clearFieldError(id) { setFieldError(id, false); }
+
+function validateForm() {
+  let valid = true;
+  const checks = [
+    { id: 'f-dj', val: () => document.getElementById('djName').value },
+    { id: 'f-client', val: () => document.getElementById('clientName').value.trim() },
+    { id: 'f-date', val: () => document.getElementById('eventDate').value },
+    { id: 'f-stars', val: () => starValue > 0 ? '1' : '' },
+    { id: 'f-photos', val: () => photoFiles.length >= 3 ? '1' : '' },
+  ];
+  checks.forEach(c => {
+    const err = !c.val();
+    setFieldError(c.id, err);
+    if (err) valid = false;
+  });
+  return valid;
+}
+
+// ── SUBMIT ──
+async function submitForm() {
+  if (!validateForm()) {
+    showToast('Please complete all required fields ↑', 'error');
+    // scroll to first error
+    const firstErr = document.querySelector('.field-error');
+    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  document.getElementById('sendingOverlay').classList.add('active');
+
+  try {
+    // Convert photos to base64 for email
+    const photoDataUrls = await Promise.all(photoFiles.map(fileToBase64));
+
+    // Build form data object
+    const formData = {
+      djName: document.getElementById('djName').value,
+      clientName: document.getElementById('clientName').value.trim(),
+      eventDate: document.getElementById('eventDate').value,
+      rating: starValue,
+      eventNotes: document.getElementById('eventNotes').value.trim(),
+      photographerName: document.getElementById('photographerName').value.trim(),
+      videographerName: document.getElementById('videographerName').value.trim(),
+      coordinatorName: document.getElementById('coordinatorName').value.trim(),
+      photoCount: photoFiles.length,
+      photoNames: photoFiles.map(f => f.name),
+    };
+
+    // Build mailto body (fallback / primary method)
+    // For production, replace with a backend API call (e.g. Formspree, EmailJS, Netlify Forms)
+    await sendViaEmailJS(formData, photoDataUrls);
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('sendingOverlay').classList.remove('active');
+    showToast('Error sending — please try again.', 'error');
+    return;
+  }
+
+  document.getElementById('sendingOverlay').classList.remove('active');
+  document.getElementById('formState').style.display = 'none';
+  document.getElementById('successState').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── EMAIL SENDING via EmailJS ──
+// ACTION REQUIRED: Sign up at emailjs.com (free), create a service + template,
+// then replace YOUR_SERVICE_ID, YOUR_TEMPLATE_ID, YOUR_PUBLIC_KEY below.
+async function sendViaEmailJS(data, photos) {
+  const SERVICE_ID  = 'YOUR_SERVICE_ID';   // ← replace
+  const TEMPLATE_ID = 'YOUR_TEMPLATE_ID'; // ← replace
+  const PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';  // ← replace
+
+  const starDisplay = '★'.repeat(data.rating) + '☆'.repeat(5 - data.rating);
+  const dateFormatted = data.eventDate ? new Date(data.eventDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : 'Not specified';
+
+  const body = `
+FOOTLOOSE ENTERTAINMENT — AFTER EVENT REPORT
+============================================
+
+DJ NAME:        ${data.djName}
+CLIENT:         ${data.clientName}
+EVENT DATE:     ${dateFormatted}
+RATING:         ${starDisplay} (${data.rating}/5)
+
+NOTES:
+${data.eventNotes || '(none)'}
+
+VENDOR TEAM
+-----------
+Photographer:   ${data.photographerName || 'N/A'}
+Videographer:   ${data.videographerName || 'N/A'}
+Coordinator:    ${data.coordinatorName || 'N/A'}
+
+PHOTOS:         ${data.photoCount} photo(s) attached
+Files:          ${data.photoNames.join(', ')}
+
+============================================
+Submitted via Footloose Staff Portal
+  `.trim();
+
+  // If EmailJS not configured yet, fall back to mailto
+  if (SERVICE_ID === 'YOUR_SERVICE_ID') {
+    fallbackMailto(data, body);
+    return;
+  }
+
+  // Load EmailJS SDK dynamically
+  if (!window.emailjs) {
+    await loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js');
+    emailjs.init(PUBLIC_KEY);
+  }
+
+  const templateParams = {
+    to_email: 'footloose@footlooseentertainment.com', // ← your email
+    dj_name: data.djName,
+    client_name: data.clientName,
+    event_date: dateFormatted,
+    rating: `${starDisplay} (${data.rating}/5)`,
+    event_notes: data.eventNotes || '(none)',
+    photographer: data.photographerName || 'N/A',
+    videographer: data.videographerName || 'N/A',
+    coordinator: data.coordinatorName || 'N/A',
+    photo_count: data.photoCount,
+    message_body: body,
+  };
+
+  await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
+}
+
+function fallbackMailto(data, body) {
+  // Fallback: open mail client with pre-filled report
+  const subject = encodeURIComponent(`After Event Report – ${data.clientName} – ${data.djName}`);
+  const bodyEnc = encodeURIComponent(body);
+  const mailtoUrl = `mailto:footloose@footlooseentertainment.com?subject=${subject}&body=${bodyEnc}`;
+  window.location.href = mailtoUrl;
+  // Show success after a moment (mail client handles sending)
+  setTimeout(() => {}, 500);
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// ── RESET FORM ──
+function resetForm() {
+  document.getElementById('djName').value = '';
+  document.getElementById('clientName').value = '';
+  document.getElementById('eventDate').value = '';
+  document.getElementById('eventNotes').value = '';
+  document.getElementById('photographerName').value = '';
+  document.getElementById('videographerName').value = '';
+  document.getElementById('coordinatorName').value = '';
+  starValue = 0;
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('starLabel').textContent = 'Tap to rate';
+  photoFiles = [];
+  renderPhotoGrid();
+  document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+  document.getElementById('successState').classList.remove('active');
+  document.getElementById('formState').style.display = '';
+  window.scrollTo(0, 0);
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── DRAG OVER PHOTO ZONE ──
+const zone = document.getElementById('photoZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  files.forEach(f => {
+    if (!photoFiles.find(x => x.name === f.name && x.size === f.size)) photoFiles.push(f);
+  });
+  renderPhotoGrid();
+  if (photoFiles.length >= 3) clearFieldError('f-photos');
+});
+
+// ── PWA SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  // Inline SW via blob for portability (can be split to sw.js in production)
+  const swCode = `
+    const CACHE = 'footloose-v1';
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+</script>
+</body>
+</html>
