@@ -562,23 +562,34 @@
       <div class="page-title">After Event <span class="gold">Report</span></div>
       <div class="page-sub">Complete this form after every event — photos required.</div>
 
-      <!-- SECTION: DJ INFO -->
+      <!-- SECTION: STAFF INFO -->
       <div class="card">
-        <div class="card-label">🎧 DJ Info</div>
+        <div class="card-label">🎧 Staff Info</div>
         <div class="field" id="f-dj">
-          <label class="field-label">DJ Name <span class="req">*</span></label>
+          <label class="field-label">Your Name <span class="req">*</span></label>
           <select id="djName">
             <option value="">— Select your name —</option>
             <option>Kris</option>
             <option>Misty</option>
-            <option>DJ Smooth</option>
-            <option>DJ Roc</option>
-            <option>DJ Jayson</option>
-            <option>DJ Marcus</option>
-            <option>DJ Tony</option>
-            <option>DJ Vic</option>
+            <option>Dennis</option>
+            <option>Chris</option>
+            <option>Rob</option>
+            <option>Jason</option>
+            <option>Kyle</option>
+            <option>Jacob</option>
+            <option>Ellie</option>
+            <option>Brandie</option>
           </select>
-          <div class="field-error-msg">Please select your name.</div>
+          <div class="field-error-msg">Please select your name and role.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Role <span class="req">*</span></label>
+          <select id="staffRole">
+            <option value="">— Select your role —</option>
+            <option>DJ</option>
+            <option>Photobooth Attendant</option>
+            <option>DJ + Photobooth</option>
+          </select>
         </div>
       </div>
 
@@ -766,6 +777,7 @@ async function submitForm() {
     // Build form data object
     const formData = {
       djName: document.getElementById('djName').value,
+      staffRole: document.getElementById('staffRole').value,
       clientName: document.getElementById('clientName').value.trim(),
       eventDate: document.getElementById('eventDate').value,
       rating: starValue,
@@ -818,7 +830,7 @@ async function sendViaEmailJS(data, photos) {
 FOOTLOOSE ENTERTAINMENT — AFTER EVENT REPORT
 ============================================
 
-DJ NAME:        ${data.djName}
+NAME:           ${data.djName}\nROLE:           ${data.staffRole}
 CLIENT:         ${data.clientName}
 EVENT DATE:     ${dateFormatted}
 RATING:         ${starDisplay} (${data.rating}/5)
