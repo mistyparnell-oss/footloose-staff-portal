@@ -932,70 +932,14 @@ zone.addEventListener('drop', e => {
   }
 
   async function epReformat(base64, extractedText) {
-    const prompt = `You are reformatting a wedding DJ event preparation document from Planning Beats software into a clean, organized DJ reference sheet.
-
-Extract and return ONLY a JSON object (no markdown, no explanation) with this exact structure:
-
-{
-  "eventName": "Couple names + Reception",
-  "date": "formatted date",
-  "time": "start - end time",
-  "venue": "venue name and address",
-  "clients": [
-    {"role": "Bride", "name": "full name", "phone": "", "email": ""},
-    {"role": "Groom", "name": "full name", "phone": "", "email": ""}
-  ],
-  "generalInfo": {
-    "theme": "",
-    "photographer": "",
-    "videographer": "",
-    "weddingPlanner": "",
-    "specialAnnouncements": ""
-  },
-  "venueDetails": {
-    "name": "",
-    "indoorOutdoor": "",
-    "cocktailHourLocation": "",
-    "cocktailHourMusic": ""
-  },
-  "timeline": [
-    {
-      "time": "7:00 PM or blank",
-      "section": "Section name",
-      "songs": ["Song - Artist"],
-      "notes": "Special DJ instructions, announcement scripts, pronunciations, fade/full, who is dancing"
-    }
-  ],
-  "toasts": "who is giving toasts in order",
-  "openDance": {
-    "preferences": "music preferences/era/style",
-    "mustPlay": ["Song - Artist"],
-    "playIfPossible": ["Song - Artist"],
-    "doNotPlay": ["Song - Artist"],
-    "lineDances": "yes/no/if needed",
-    "requests": "yes/no and any notes",
-    "spotifyLink": ""
-  }
-}
-
-Include ALL timeline sections in order. Put special DJ instructions (announcement scripts, pronunciations, fade/full, who is dancing) in the notes field for each section. Skip N/A sections.
-
-PDF text:
-${extractedText}`;
-
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbztu6y0J4pfRJLkC1D7uciFYttHK6mi2e0cJyRfypnBDPP9lLyCxmhl1lg2SarA75HX8w/exec', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
+        body: JSON.stringify({ action: 'eventPrep', text: extractedText })
       });
       const data = await response.json();
-      const rawText = data.content.map(b => b.text || '').join('');
-      const clean = rawText.replace(/```json|```/g, '').trim();
+      if (!data.success) throw new Error(data.error || 'GAS error');
+      const clean = data.result.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
       epRender(parsed);
       epSetStatus('');
