@@ -1013,7 +1013,18 @@ zone.addEventListener('drop', e => {
           <th style="text-align:left;padding:5px 6px;font-size:11px;color:#888;">NOTES</th>
         </tr></thead><tbody>`;
       d.timeline.forEach(row => {
-        const songs = (row.songs && row.songs.length) ? `<ul style="margin:0;padding-left:14px;">${row.songs.map(s=>`<li>${s}</li>`).join('')}</ul>` : '—';
+        // Normalize song - handles string or object with title/artist/name properties
+        function songStr(s) {
+          if (!s) return '';
+          if (typeof s === 'string') return s;
+          if (typeof s === 'object') {
+            const title = s.title || s.song || s.name || s.track || '';
+            const artist = s.artist || s.by || '';
+            return artist ? title + ' — ' + artist : title;
+          }
+          return String(s);
+        }
+        const songs = (row.songs && row.songs.length) ? `<ul style="margin:0;padding-left:14px;">${row.songs.map(s=>`<li>${songStr(s)}</li>`).join('')}</ul>` : '—';
         h += `<tr style="border-bottom:1px solid #eee;vertical-align:top;">
           <td style="padding:6px;">${row.time ? `<span style="background:#e6f4f5;color:#016d77;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;">${row.time}</span>` : ''}</td>
           <td style="padding:6px;font-weight:600;">${row.section}</td>
@@ -1039,14 +1050,24 @@ zone.addEventListener('drop', e => {
         ['Guest Requests', od.requests], ['Spotify', od.spotifyLink]
       ].filter(r => !na(r[1]));
       if (odRows.length) h += epInfoGrid(odRows);
+      function songStr(s) {
+        if (!s) return '';
+        if (typeof s === 'string') return s;
+        if (typeof s === 'object') {
+          const title = s.title || s.song || s.name || s.track || '';
+          const artist = s.artist || s.by || '';
+          return artist ? title + ' — ' + artist : title;
+        }
+        return String(s);
+      }
       if (od.mustPlay && od.mustPlay.length) {
-        h += `<div style="font-size:12px;font-weight:600;margin:8px 0 3px;">Must Play</div><ul style="margin:0 0 8px;padding-left:16px;font-size:13px;">${od.mustPlay.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+        h += `<div style="font-size:12px;font-weight:600;margin:8px 0 3px;">Must Play</div><ul style="margin:0 0 8px;padding-left:16px;font-size:13px;">${od.mustPlay.map(s=>`<li>${songStr(s)}</li>`).join('')}</ul>`;
       }
       if (od.playIfPossible && od.playIfPossible.length) {
-        h += `<div style="font-size:12px;font-weight:600;margin:8px 0 3px;">Play If Possible</div><ul style="margin:0 0 8px;padding-left:16px;font-size:13px;color:#555;">${od.playIfPossible.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+        h += `<div style="font-size:12px;font-weight:600;margin:8px 0 3px;">Play If Possible</div><ul style="margin:0 0 8px;padding-left:16px;font-size:13px;color:#555;">${od.playIfPossible.map(s=>`<li>${songStr(s)}</li>`).join('')}</ul>`;
       }
       if (od.doNotPlay && od.doNotPlay.length) {
-        h += `<div style="margin-top:8px;background:#fff0f0;border-left:3px solid #e05252;padding:7px 10px;font-size:12px;border-radius:0 6px 6px 0;"><strong>Do Not Play:</strong> ${od.doNotPlay.join(', ')}</div>`;
+        h += `<div style="margin-top:8px;background:#fff0f0;border-left:3px solid #e05252;padding:7px 10px;font-size:12px;border-radius:0 6px 6px 0;"><strong>Do Not Play:</strong> ${od.doNotPlay.map(s=>songStr(s)).join(', ')}</div>`;
       }
     }
 
