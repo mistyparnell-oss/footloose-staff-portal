@@ -933,7 +933,7 @@ zone.addEventListener('drop', e => {
 
   async function epReformat(base64, extractedText) {
     try {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbztu6y0J4pfRJLkC1D7uciFYttHK6mi2e0cJyRfypnBDPP9lLyCxmhl1lg2SarA75HX8w/exec', {
+      const response = await fetch('https://script.google.com/macros/s/AKfycbzj0jQ-67xo-hBt2yBcmVqrWZs9HHJNCNjJPt9iggQpbfpqbDxJ3P3osqtfWPB1EizN_g/exec', {
         method: 'POST',
         body: JSON.stringify({ action: 'eventPrep', text: extractedText })
       });
