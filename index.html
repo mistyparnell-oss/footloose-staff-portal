@@ -505,6 +505,7 @@
   <nav class="nav">
     <button class="nav-item active" onclick="showPage('home')" id="nav-home">🏠 Home</button>
     <button class="nav-item" onclick="showPage('event-report')" id="nav-event-report">📋 After Event Report</button>
+    <button class="nav-item" onclick="showPage('event-prep')" id="nav-event-prep">🎵 Event Prep</button>
   </nav>
 
   <!-- ══ HOME PAGE ══ -->
@@ -520,9 +521,14 @@
         <div class="home-card-title">After Event Report</div>
         <div class="home-card-desc">Submit your post-event recap</div>
       </div>
+      <div class="home-card" onclick="showPage('event-prep')">
+        <div class="home-card-icon">🎵</div>
+        <div class="home-card-title">Event Prep</div>
+        <div class="home-card-desc">Reformat Planning Beats PDFs</div>
+      </div>
       <div class="home-card" style="opacity:.45; cursor:default;">
         <div class="home-card-icon">📅</div>
-        <div class="home-card-title">My Events</div>
+        <div class="home-card-title">My Schedule</div>
         <div class="home-card-desc">Coming soon</div>
       </div>
       <div class="home-card" style="opacity:.45; cursor:default;">
@@ -656,6 +662,29 @@
       </div>
 
       <button class="btn-submit" id="submitBtn" onclick="submitForm()">Submit Report →</button>
+    </div>
+  </div>
+
+  <!-- ══ EVENT PREP PAGE ══ -->
+  <div class="page" id="page-event-prep">
+    <div class="page-title">Event <span class="gold">Prep</span></div>
+    <div class="page-sub">Upload a Planning Beats PDF to generate a clean DJ reference sheet</div>
+
+    <div id="ep-upload-zone" onclick="document.getElementById('ep-file-input').click()" style="border:2px dashed #2a2a2a;border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;background:#111;transition:background .2s;">
+      <div style="font-size:40px;margin-bottom:10px;">📄</div>
+      <div style="font-size:15px;font-weight:500;color:#f0ede6;">Drop Planning Beats PDF here</div>
+      <div style="font-size:12px;color:#8a8a8a;margin-top:6px;">or tap to choose a file</div>
+      <input type="file" id="ep-file-input" accept=".pdf" style="display:none;" onchange="epHandleFile(event)">
+    </div>
+
+    <div id="ep-status" style="margin-top:12px;font-size:13px;color:#8a8a8a;min-height:18px;text-align:center;"></div>
+
+    <div id="ep-output-wrap" style="display:none;margin-top:20px;">
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <button onclick="epPrint()" style="flex:1;background:var(--gold);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;cursor:pointer;">🖨 Print / Save PDF</button>
+        <button onclick="epReset()" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a;border-radius:10px;padding:13px 16px;font-size:13px;cursor:pointer;">New</button>
+      </div>
+      <div id="ep-sheet" style="background:#fff;border-radius:12px;padding:24px;color:#111;font-family:'DM Sans',sans-serif;"></div>
     </div>
   </div>
 
@@ -855,7 +884,251 @@ zone.addEventListener('drop', e => {
   if (photoFiles.length >= 3) clearFieldError('f-photos');
 });
 
-// ── PWA SERVICE WORKER ──
+
+// ── EVENT PREP ──
+(function() {
+  let epPdfJs = null;
+
+  function loadPdfJs(cb) {
+    if (epPdfJs) { cb(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      epPdfJs = true;
+      cb();
+    };
+    document.head.appendChild(s);
+  }
+
+  window.epHandleFile = function(e) {
+    const file = e.target.files[0];
+    if (!file || file.type !== 'application/pdf') { epSetStatus('Please upload a PDF file.', true); return; }
+    epSetStatus('Reading PDF…');
+    loadPdfJs(async function() {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = arrayBufferToBase64(arrayBuffer);
+        const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          const page = await pdfDoc.getPage(i);
+          const content = await page.getTextContent();
+          fullText += content.items.map(item => item.str).join(' ') + '\n';
+        }
+        epSetStatus('Reformatting with AI…');
+        await epReformat(base64, fullText);
+      } catch (err) {
+        epSetStatus('Error reading PDF: ' + err.message, true);
+      }
+    });
+  };
+
+  function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  async function epReformat(base64, extractedText) {
+    const prompt = `You are reformatting a wedding DJ event preparation document from Planning Beats software into a clean, organized DJ reference sheet.
+
+Extract and return ONLY a JSON object (no markdown, no explanation) with this exact structure:
+
+{
+  "eventName": "Couple names + Reception",
+  "date": "formatted date",
+  "time": "start - end time",
+  "venue": "venue name and address",
+  "clients": [
+    {"role": "Bride", "name": "full name", "phone": "", "email": ""},
+    {"role": "Groom", "name": "full name", "phone": "", "email": ""}
+  ],
+  "generalInfo": {
+    "theme": "",
+    "photographer": "",
+    "videographer": "",
+    "weddingPlanner": "",
+    "specialAnnouncements": ""
+  },
+  "venueDetails": {
+    "name": "",
+    "indoorOutdoor": "",
+    "cocktailHourLocation": "",
+    "cocktailHourMusic": ""
+  },
+  "timeline": [
+    {
+      "time": "7:00 PM or blank",
+      "section": "Section name",
+      "songs": ["Song - Artist"],
+      "notes": "Special DJ instructions, announcement scripts, pronunciations, fade/full, who is dancing"
+    }
+  ],
+  "toasts": "who is giving toasts in order",
+  "openDance": {
+    "preferences": "music preferences/era/style",
+    "mustPlay": ["Song - Artist"],
+    "playIfPossible": ["Song - Artist"],
+    "doNotPlay": ["Song - Artist"],
+    "lineDances": "yes/no/if needed",
+    "requests": "yes/no and any notes",
+    "spotifyLink": ""
+  }
+}
+
+Include ALL timeline sections in order. Put special DJ instructions (announcement scripts, pronunciations, fade/full, who is dancing) in the notes field for each section. Skip N/A sections.
+
+PDF text:
+${extractedText}`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await response.json();
+      const rawText = data.content.map(b => b.text || '').join('');
+      const clean = rawText.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      epRender(parsed);
+      epSetStatus('');
+      document.getElementById('ep-output-wrap').style.display = 'block';
+      document.getElementById('ep-upload-zone').style.display = 'none';
+    } catch (err) {
+      epSetStatus('Error formatting: ' + err.message, true);
+    }
+  }
+
+  function epRender(d) {
+    const sheet = document.getElementById('ep-sheet');
+    const na = v => !v || v.toLowerCase() === 'n/a' || v.trim() === '';
+    let h = `<div style="border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px;">
+      <div style="font-size:26px;font-weight:600;">${d.eventName || 'Event'}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:13px;color:#555;">
+        ${d.date ? `<span>📅 ${d.date}</span>` : ''}
+        ${d.time ? `<span>🕐 ${d.time}</span>` : ''}
+        ${d.venue ? `<span>📍 ${d.venue}</span>` : ''}
+      </div>
+    </div>`;
+
+    // Contacts
+    if (d.clients && d.clients.length) {
+      h += epSection('Contacts');
+      h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">`;
+      d.clients.forEach(c => {
+        h += `<div style="background:#f5f5f5;border-radius:8px;padding:10px 12px;">
+          <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${c.role}: ${c.name}</div>
+          ${c.phone ? `<div style="font-size:12px;color:#555;">📞 ${c.phone}</div>` : ''}
+          ${c.email ? `<div style="font-size:12px;color:#555;">✉️ ${c.email}</div>` : ''}
+        </div>`;
+      });
+      h += `</div>`;
+    }
+
+    // General Info
+    const giRows = [
+      ['Theme', d.generalInfo?.theme], ['Photographer', d.generalInfo?.photographer],
+      ['Videographer', d.generalInfo?.videographer], ['Wedding Planner', d.generalInfo?.weddingPlanner],
+      ['Announcements', d.generalInfo?.specialAnnouncements]
+    ].filter(r => !na(r[1]));
+    if (giRows.length) {
+      h += epSection('General Info');
+      h += epInfoGrid(giRows);
+    }
+
+    // Venue
+    const vRows = [
+      ['Venue', d.venueDetails?.name], ['Indoor/Outdoor', d.venueDetails?.indoorOutdoor],
+      ['Cocktail Location', d.venueDetails?.cocktailHourLocation], ['Cocktail Music', d.venueDetails?.cocktailHourMusic]
+    ].filter(r => !na(r[1]));
+    if (vRows.length) {
+      h += epSection('Venue');
+      h += epInfoGrid(vRows);
+    }
+
+    // Timeline
+    if (d.timeline && d.timeline.length) {
+      h += epSection('Event Timeline');
+      h += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
+        <thead><tr style="border-bottom:1px solid #ccc;">
+          <th style="text-align:left;padding:5px 6px;font-size:11px;color:#888;width:70px;">TIME</th>
+          <th style="text-align:left;padding:5px 6px;font-size:11px;color:#888;width:140px;">SECTION</th>
+          <th style="text-align:left;padding:5px 6px;font-size:11px;color:#888;">SONGS</th>
+          <th style="text-align:left;padding:5px 6px;font-size:11px;color:#888;">NOTES</th>
+        </tr></thead><tbody>`;
+      d.timeline.forEach(row => {
+        const songs = (row.songs && row.songs.length) ? `<ul style="margin:0;padding-left:14px;">${row.songs.map(s=>`<li>${s}</li>`).join('')}</ul>` : '—';
+        h += `<tr style="border-bottom:1px solid #eee;vertical-align:top;">
+          <td style="padding:6px;">${row.time ? `<span style="background:#e6f4f5;color:#016d77;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;">${row.time}</span>` : ''}</td>
+          <td style="padding:6px;font-weight:600;">${row.section}</td>
+          <td style="padding:6px;">${songs}</td>
+          <td style="padding:6px;font-size:12px;color:#555;">${row.notes || '—'}</td>
+        </tr>`;
+      });
+      h += `</tbody></table>`;
+    }
+
+    // Toasts
+    if (d.toasts && !na(d.toasts)) {
+      h += epSection('Toasts');
+      h += `<div style="font-size:13px;margin-bottom:16px;">${d.toasts}</div>`;
+    }
+
+    // Open Dance
+    if (d.openDance) {
+      const od = d.openDance;
+      h += epSection('Open Dance Music');
+      const odRows = [
+        ['Preferences', od.preferences], ['Line Dances', od.lineDances],
+        ['Guest Requests', od.requests], ['Spotify', od.spotifyLink]
+      ].filter(r => !na(r[1]));
+      if (odRows.length) h += epInfoGrid(odRows);
+      if (od.mustPlay && od.mustPlay.length) {
+        h += `<div style="font-size:12px;font-weight:600;margin:8px 0 3px;">Must Play</div><ul style="margin:0 0 8px;padding-left:16px;font-size:13px;">${od.mustPlay.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+      }
+      if (od.playIfPossible && od.playIfPossible.length) {
+        h += `<div style="font-size:12px;font-weight:600;margin:8px 0 3px;">Play If Possible</div><ul style="margin:0 0 8px;padding-left:16px;font-size:13px;color:#555;">${od.playIfPossible.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+      }
+      if (od.doNotPlay && od.doNotPlay.length) {
+        h += `<div style="margin-top:8px;background:#fff0f0;border-left:3px solid #e05252;padding:7px 10px;font-size:12px;border-radius:0 6px 6px 0;"><strong>Do Not Play:</strong> ${od.doNotPlay.join(', ')}</div>`;
+      }
+    }
+
+    sheet.innerHTML = h;
+  }
+
+  function epSection(title) {
+    return `<div style="background:#111;color:#fff;padding:4px 10px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-bottom:8px;">${title}</div>`;
+  }
+
+  function epInfoGrid(rows) {
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:16px;">${rows.map(r=>`<div style="display:flex;gap:6px;border-bottom:1px solid #eee;padding:4px 0;font-size:13px;"><span style="color:#888;min-width:110px;font-size:12px;">${r[0]}</span><span>${r[1]}</span></div>`).join('')}</div>`;
+  }
+
+  function epSetStatus(msg, isErr) {
+    const el = document.getElementById('ep-status');
+    el.textContent = msg;
+    el.style.color = isErr ? '#e05252' : '#8a8a8a';
+  }
+
+  window.epPrint = function() { window.print(); };
+
+  window.epReset = function() {
+    document.getElementById('ep-output-wrap').style.display = 'none';
+    document.getElementById('ep-upload-zone').style.display = 'block';
+    document.getElementById('ep-sheet').innerHTML = '';
+    document.getElementById('ep-file-input').value = '';
+    epSetStatus('');
+  };
+})();
+
 if ('serviceWorker' in navigator) {
   // Inline SW via blob for portability (can be split to sw.js in production)
   const swCode = `
