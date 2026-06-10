@@ -681,8 +681,7 @@
 
     <div id="ep-output-wrap" style="display:none;margin-top:20px;">
       <div style="display:flex;gap:10px;margin-bottom:14px;">
-        <button onclick="epPrint()" style="flex:1;background:var(--gold);color:#000;border:none;border-radius:10px;padding:13px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;cursor:pointer;">🖨 Print / Save PDF</button>
-        <button onclick="epReset()" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a;border-radius:10px;padding:13px 16px;font-size:13px;cursor:pointer;">New</button>
+        <button onclick="epReset()" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a;border-radius:10px;padding:13px 16px;font-size:13px;cursor:pointer;">⬅ New Event</button>
       </div>
       <div id="ep-sheet" style="background:#fff;border-radius:12px;padding:24px;color:#111;font-family:'DM Sans',sans-serif;"></div>
     </div>
@@ -901,9 +900,13 @@ zone.addEventListener('drop', e => {
     document.head.appendChild(s);
   }
 
+  var epOutputFileName = 'event-prep-adjusted';
+
   window.epHandleFile = function(e) {
     const file = e.target.files[0];
     if (!file || file.type !== 'application/pdf') { epSetStatus('Please upload a PDF file.', true); return; }
+    // Store filename without extension + "-adjusted"
+    epOutputFileName = file.name.replace(/\.pdf$/i, '') + '-adjusted';
     epSetStatus('Reading PDF…');
     loadPdfJs(async function() {
       try {
@@ -945,6 +948,8 @@ zone.addEventListener('drop', e => {
       epSetStatus('');
       document.getElementById('ep-output-wrap').style.display = 'block';
       document.getElementById('ep-upload-zone').style.display = 'none';
+      // Auto-download after a brief delay to let the sheet render fully
+      setTimeout(epPrint, 800);
     } catch (err) {
       epSetStatus('Error formatting: ' + err.message, true);
     }
@@ -1062,7 +1067,47 @@ zone.addEventListener('drop', e => {
     el.style.color = isErr ? '#e05252' : '#8a8a8a';
   }
 
-  window.epPrint = function() { window.print(); };
+  window.epPrint = function() {
+    function loadScript(src, cb) {
+      if (document.querySelector('script[src="' + src + '"]')) { cb(); return; }
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = cb;
+      document.head.appendChild(s);
+    }
+    epSetStatus('Generating PDF…');
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', function() {
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', function() {
+        const { jsPDF } = window.jspdf;
+        const sheet = document.getElementById('ep-sheet');
+        html2canvas(sheet, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(function(canvas) {
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+          const pageW = pdf.internal.pageSize.getWidth();
+          const pageH = pdf.internal.pageSize.getHeight();
+          const imgW = pageW - 20;
+          const imgH = (canvas.height * imgW) / canvas.width;
+          let yPos = 10;
+          let remainingH = imgH;
+          let sourceY = 0;
+          while (remainingH > 0) {
+            const sliceH = Math.min(remainingH, pageH - 20);
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = canvas.width;
+            sliceCanvas.height = (sliceH * canvas.width) / imgW;
+            const ctx = sliceCanvas.getContext('2d');
+            ctx.drawImage(canvas, 0, sourceY * canvas.width / imgW, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
+            pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 10, yPos, imgW, sliceH);
+            remainingH -= sliceH;
+            sourceY += sliceH;
+            if (remainingH > 0) { pdf.addPage(); yPos = 10; }
+          }
+          pdf.save(epOutputFileName + '.pdf');
+          epSetStatus('');
+        });
+      });
+    });
+  };
 
   window.epReset = function() {
     document.getElementById('ep-output-wrap').style.display = 'none';
